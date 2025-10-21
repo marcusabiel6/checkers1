@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>checkers game</title>
+<style>
+body {
+    font-family: 'segoe ui', tahoma, geneva, verdana, sans-serif;
+    text-align: center;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 0;
+}
+h1 { margin: 20px 0 10px 0; color: #333; }
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    margin: 20px auto;
+    border: 3px solid #333;
+    box-shadow: 2px 2px 10px rgba(0,0,0,0.3);
+}
+.square {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 36px;
+    cursor: pointer;
+}
+.white { background-color: #eee; }
+.black { background-color: #444; }
+.piece-red { color: red; }
+.piece-black { color: black; }
+.selected { outline: 3px solid yellow; box-shadow: 0 0 10px gold; }
+#message { font-size: 18px; margin: 10px 0; }
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin-bottom: 20px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+<h1>checkers game</h1>
+<p id="message">red's turn</p>
+<div id="board"></div>
+<button id="reset">reset game</button>
+
+<script>
+const boardelement = document.getElementById("board");
+const messageelement = document.getElementById("message");
+const resetbutton = document.getElementById("reset");
+
+let board = [];
+let currentplayer = "red";
+let selected = null;
+
+function initboard() {
+    board = [];
+    for (let r = 0; r < 8; r++) {
+        board[r] = [];
+        for (let c = 0; c < 8; c++) {
+            if ((r+c)%2 === 0) board[r][c] = null;
+            else if (r < 3) board[r][c] = "black";
+            else if (r > 4) board[r][c] = "red";
+            else board[r][c] = null;
+        }
+    }
+    currentplayer = "red";
+    selected = null;
+    renderboard();
+    messageelement.textContent = currentplayer + "'s turn";
+}
+
+function renderboard() {
+    boardelement.innerHTML = "";
+    for (let r=0;r<8;r++){
+        for(let c=0;c<8;c++){
+            const square = document.createElement("div");
+            square.classList.add("square");
+            square.classList.add((r+c)%2===0?"white":"black");
+            square.dataset.row = r;
+            square.dataset.col = c;
+            const piece = board[r][c];
+            if(piece){
+                const piecespan = document.createElement("span");
+                piecespan.textContent = piece.includes("k")?"♔":"●";
+                piecespan.classList.add(piece.startsWith("red")?"piece-red":"piece-black");
+                square.appendChild(piecespan);
+            }
+            if(selected && selected[0]==r && selected[1]==c){
+                square.classList.add("selected");
+            }
+            square.addEventListener("click", ()=>handleclick(r,c));
+            boardelement.appendChild(square);
+        }
+    }
+}
+
+function handleclick(r,c){
+    const piece = board[r][c];
+    if(selected){
+        if(isvalidmove(selected[0],selected[1],r,c)){
+            movepiece(selected[0],selected[1],r,c);
+            selected = null;
+            if(!checkgameover()){
+                currentplayer = currentplayer==="red"?"black":"red";
+                messageelement.textContent = currentplayer + "'s turn";
+            }
+        } else selected = null;
+    } else if(piece && piece.startsWith(currentplayer)){
+        selected = [r,c];
+    }
+    renderboard();
+}
+
+function isvalidmove(sr,sc,er,ec){
+    const piece = board[sr][sc];
+    if(!piece) return false;
+    if(board[er][ec]!==null) return false;
+    const dr = er - sr;
+    const dc = ec - sc;
+    const isking = piece.includes("k");
+    if(Math.abs(dr)===1 && Math.abs(dc)===1){
+        if(isking) return true;
+        if(piece==="red" && dr===-1) return true;
+        if(piece==="black" && dr===1) return true;
+    }
+    if(Math.abs(dr)===2 && Math.abs(dc)===2){
+        const midr = sr + dr/2;
+        const midc = sc + dc/2;
+        const midpiece = board[midr][midc];
+        if(!midpiece) return false;
+        if(midpiece.startsWith(currentplayer)) return false;
+        return true;
+    }
+    return false;
+}
+
+function movepiece(sr,sc,er,ec){
+    let piece = board[sr][sc];
+    board[er][ec] = piece;
+    board[sr][sc] = null;
+    if(Math.abs(er-sr)===2){
+        const midr = (sr+er)/2;
+        const midc = (sc+ec)/2;
+        board[midr][midc] = null;
+    }
+    if(piece==="red" && er===0) board[er][ec] = "redk";
+    if(piece==="black" && er===7) board[er][ec] = "blackk";
+}
+
+function checkgameover(){
+    const redpieces = board.flat().filter(p=>p && p.startsWith("red")).length;
+    const blackpieces = board.flat().filter(p=>p && p.startsWith("black")).length;
+    if(redpieces===0){ messageelement.textContent="black wins!"; return true; }
+    if(blackpieces===0){ messageelement.textContent="red wins!"; return true; }
+    return false;
+}
+
+resetbutton.addEventListener("click",initboard);
+initboard();
+</script>
+</body>
+</html>
